@@ -10,8 +10,6 @@ sp = spotipy.Spotify(auth_manager=SpotifyClientCredentials(
     client_secret=client_secret
 ))
 
-url = "https://open.spotify.com/album/1TtdtRpeNYliHviOnhWdL7"
-
 def get_all_items(results):
     items = results["items"]
     while results["next"]:
@@ -19,42 +17,51 @@ def get_all_items(results):
         items.extend(results["items"])
     return items
 
+# === ВВОД ССЫЛКИ ===
+url = input("Вставь ссылку на плейлист или альбом: ").strip()
+
 tracks_data = []
 
-if "playlist" in url:
-    results = sp.playlist_items(playlist_id=('track',))
-    items = get_all_items(results)
+try:
+    if "playlist" in url:
+        results = sp.playlist_tracks(url)
+        items = get_all_items(results)
 
-    for item in items:
-        track = item["track"]
-        if track is None:
-            continue
-        tracks_data.append({
-            "Название": track["name"],
-            "Исполнитель": ", ".join(a["name"] for a in track["artists"]),
-            "Альбом": track["album"]["name"],
-            "Длительность (сек)": track["duration_ms"] // 1000
-        })
+        for item in items:
+            track = item["track"]
+            if track is None:
+                continue
 
-elif "album" in url:
-    results = sp.album_tracks(url)
-    items = get_all_items(results)
+            tracks_data.append({
+                "Название": track["name"],
+                "Исполнитель": ", ".join(a["name"] for a in track["artists"]),
+                "Альбом": track["album"]["name"],
+                "Длительность (сек)": track["duration_ms"] // 1000
+            })
 
-    album_info = sp.album(url)
-    album_name = album_info["name"]
+    elif "album" in url:
+        results = sp.album_tracks(url)
+        items = get_all_items(results)
 
-    for track in items:
-        tracks_data.append({
-            "Название": track["name"],
-            "Исполнитель": ", ".join(a["name"] for a in track["artists"]),
-            "Альбом": album_name,
-            "Длительность (сек)": track["duration_ms"] // 1000
-        })
+        album_info = sp.album(url)
+        album_name = album_info["name"]
 
-else:
-    raise ValueError("Ссылка должна быть на плейлист или альбом")
+        for track in items:
+            tracks_data.append({
+                "Название": track["name"],
+                "Исполнитель": ", ".join(a["name"] for a in track["artists"]),
+                "Альбом": album_name,
+                "Длительность (сек)": track["duration_ms"] // 1000
+            })
 
-df = pd.DataFrame(tracks_data)
-df.to_csv("playlist.csv", index=False)
+    else:
+        raise ValueError("Это не похоже на ссылку Spotify (ни плейлист, ни альбом)")
 
-print("Готово. Таблица создана.")
+    df = pd.DataFrame(tracks_data)
+    df.to_csv("table.csv", index=False)
+
+    print(f"Готово. Сохранено {len(tracks_data)} треков в table.csv")
+
+except Exception as e:
+    print("Что-то пошло не так:")
+    print(e)
