@@ -1,7 +1,21 @@
 import spotipy
 from spotipy.oauth2 import SpotifyClientCredentials
 import pandas as pd
+import traceback
+import tkinter as tk
+from tkinter import simpledialog, messagebox
 
+# === UI ===
+root = tk.Tk()
+root.withdraw()
+
+url = simpledialog.askstring("Spotify", "Вставь ссылку:")
+tablename = simpledialog.askstring("Spotify", "Вставь название таблицы:")
+if not url:
+    messagebox.showerror("Ошибка", "Ссылка не введена")
+    exit()
+
+# === Spotify ===
 client_id = "815743b24e9147f9b7b84078252addd0"
 client_secret = "d648ee65934f4cc09bed86bfd3c5e88c"
 
@@ -16,9 +30,6 @@ def get_all_items(results):
         results = sp.next(results)
         items.extend(results["items"])
     return items
-
-# === ВВОД ССЫЛКИ ===
-url = input("Вставь ссылку на плейлист или альбом: ").strip()
 
 tracks_data = []
 
@@ -43,8 +54,7 @@ try:
         results = sp.album_tracks(url)
         items = get_all_items(results)
 
-        album_info = sp.album(url)
-        album_name = album_info["name"]
+        album_name = sp.album(url)["name"]
 
         for track in items:
             tracks_data.append({
@@ -55,13 +65,14 @@ try:
             })
 
     else:
-        raise ValueError("Это не похоже на ссылку Spotify (ни плейлист, ни альбом)")
+        raise ValueError("Это не ссылка Spotify")
 
     df = pd.DataFrame(tracks_data)
-    df.to_csv("table.csv", index=False)
+    df.to_excel(f"{tablename}.xlsx", index=False)
 
-    print(f"Готово. Сохранено {len(tracks_data)} треков в table.csv")
+    messagebox.showinfo("Готово", f"Сохранено {len(tracks_data)} треков")
+
 
 except Exception as e:
-    print("Что-то пошло не так:")
-    print(e)
+    messagebox.showerror("Ошибка", str(e))
+    print(traceback.format_exc())
