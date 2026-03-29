@@ -24,25 +24,23 @@ sp = spotipy.Spotify(auth_manager=SpotifyClientCredentials(
     client_secret=client_secret
 ))
 
-def get_all_items(results):
-    items = results["items"]
-    while results["next"]:
-        results = sp.next(results)
-        items.extend(results["items"])
-    return items
-
 tracks_data = []
 
 try:
     if "playlist" in url:
+        items = []
         results = sp.playlist_tracks(url)
-        items = get_all_items(results)
+        while True:
+            items.extend(results["items"])
+            if results["next"]:
+                results = sp.next(results)
+            else:
+                break
 
         for item in items:
             track = item["track"]
             if track is None:
                 continue
-
             tracks_data.append({
                 "Название": track["name"],
                 "Исполнитель": ", ".join(a["name"] for a in track["artists"]),
@@ -51,10 +49,15 @@ try:
             })
 
     elif "album" in url:
+        items = []
         results = sp.album_tracks(url)
-        items = get_all_items(results)
-
         album_name = sp.album(url)["name"]
+        while True:
+            items.extend(results["items"])
+            if results["next"]:
+                results = sp.next(results)
+            else:
+                break
 
         for track in items:
             tracks_data.append({
@@ -71,7 +74,6 @@ try:
     df.to_excel(f"{tablename}.xlsx", index=False)
 
     messagebox.showinfo("Готово", f"Сохранено {len(tracks_data)} треков")
-
 
 except Exception as e:
     messagebox.showerror("Ошибка", str(e))
