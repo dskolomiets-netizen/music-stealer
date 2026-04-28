@@ -1,19 +1,29 @@
 import spotipy
 from spotipy.oauth2 import SpotifyClientCredentials
 import pandas as pd
-import traceback
 import tkinter as tk
 from tkinter import simpledialog, messagebox
+import re
+
+from yamu import get_yandex_playlist
+
 
 # === UI ===
 root = tk.Tk()
 root.withdraw()
 
-url = simpledialog.askstring("Spotify", "Вставь ссылку:")
-tablename = simpledialog.askstring("Spotify", "Вставь название таблицы:")
+url = simpledialog.askstring("Музыка", "Вставь ссылку:")
+tablename = simpledialog.askstring("Музыка", "Название файла:")
+
 if not url:
     messagebox.showerror("Ошибка", "Ссылка не введена")
     exit()
+
+if not tablename:
+    tablename = "table"
+
+tablename = re.sub(r'[\\/*?:"<>|]', "_", tablename)
+
 
 # === Spotify ===
 client_id = "815743b24e9147f9b7b84078252addd0"
@@ -24,52 +34,62 @@ sp = spotipy.Spotify(auth_manager=SpotifyClientCredentials(
     client_secret=client_secret
 ))
 
+
+def get_all_items(results):
+    items = results["items"]
+    while results["next"]:
+        results = sp.next(results)
+        items.extend(results["items"])
+    return items
+
+
 tracks_data = []
 
 try:
-    if "playlist" in url:
-        items = []
-        results = sp.playlist_tracks(url)
-        while True:
-            items.extend(results["items"])
-            if results["next"]:
-                results = sp.next(results)
-            else:
-                break
+    # === YANDEX ===
+    if "music.yandex.ru" in url:
+        tracks_data = get_yandex_playlist(url)
 
-        for item in items:
-            track = item["track"]
-            if track is None:
-                continue
-            tracks_data.append({
-                "Название": track["name"],
-                "Исполнитель": ", ".join(a["name"] for a in track["artists"]),
-                "Альбом": track["album"]["name"],
-                "Длительность (сек)": track["duration_ms"] // 1000
-            })
+    # === SPOTIFY ===
+    elif "spotify" in url:
 
-    elif "album" in url:
-        items = []
-        results = sp.album_tracks(url)
-        album_name = sp.album(url)["name"]
-        while True:
-            items.extend(results["items"])
-            if results["next"]:
-                results = sp.next(results)
-            else:
-                break
+        if "playlist" in url:
+            results = sp.playlist_tracks(url, limit=100)
+            items = get_all_items(results)
 
-        for track in items:
-            tracks_data.append({
-                "Название": track["name"],
-                "Исполнитель": ", ".join(a["name"] for a in track["artists"]),
-                "Альбом": album_name,
-                "Длительность (сек)": track["duration_ms"] // 1000
-            })
+            for item in items:
+                track = item["track"]
+                if track is None:
+                    continue
+
+                tracks_data.append({
+                    "Название": track["name"],
+                    "Исполнитель": ", ".join(a["name"] for a in track["artists"]),
+                    "Альбом": track["album"]["name"],
+                    "Длительность (сек)": track["duration_ms"] // 1000
+                })
+
+        elif "album" in url:
+            results = sp.album_tracks(url)
+            items = get_all_items(results)
+
+            album_name = sp.album(url)["name"]
+
+            for track in items:
+                tracks_data.append({
+                    "Название": track["name"],
+                    "Исполнитель": ", ".join(a["name"] for a in track["artists"]),
+                    "Альбом": album_name,
+                    "Длительность (сек)": track["duration_ms"] // 1000
+                })
+
+        else:
+            raise ValueError("Неизвестный тип ссылки Spotify")
 
     else:
-        raise ValueError("Это не ссылка Spotify")
+        raise ValueError("Ссылка не поддерживается")
 
+    # === SAVE ===
     df = pd.DataFrame(tracks_data)
     df.to_excel(f"{tablename}.xlsx", index=False)
 
@@ -77,4 +97,3 @@ try:
 
 except Exception as e:
     messagebox.showerror("Ошибка", str(e))
-    print(traceback.format_exc())
