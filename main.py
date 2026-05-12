@@ -1,5 +1,5 @@
 import spotipy
-from spotipy.oauth2 import SpotifyClientCredentials
+from spotipy.oauth2 import SpotifyOAuth
 import pandas as pd
 import tkinter as tk
 from tkinter import simpledialog, messagebox
@@ -11,28 +11,36 @@ from yamu import get_yandex_playlist
 # === UI ===
 root = tk.Tk()
 root.withdraw()
-
 url = simpledialog.askstring("Музыка", "Вставь ссылку:")
 tablename = simpledialog.askstring("Музыка", "Название файла:")
-
 if not url:
     messagebox.showerror("Ошибка", "Ссылка не введена")
     exit()
-
 if not tablename:
     tablename = "table"
-
 tablename = re.sub(r'[\\/*?:"<>|]', "_", tablename)
 
 
 # === Spotify ===
+def extract_spotify_id(url):
+    return url.split("/")[-1].split("?")[0]
+
 client_id = "815743b24e9147f9b7b84078252addd0"
 client_secret = "d648ee65934f4cc09bed86bfd3c5e88c"
 
-sp = spotipy.Spotify(auth_manager=SpotifyClientCredentials(
-    client_id=client_id,
-    client_secret=client_secret
-))
+sp = spotipy.Spotify(
+    auth_manager=SpotifyOAuth(
+        client_id=client_id,
+        client_secret=client_secret,
+        redirect_uri="http://127.0.0.1:8888/callback",
+        scope="playlist-read-private playlist-read-collaborative",
+        open_browser=True,
+        cache_path=".spotifycache"
+    )
+)
+
+user = sp.current_user()
+print(user["display_name"])
 
 
 def get_all_items(results):
@@ -54,20 +62,41 @@ try:
     elif "spotify" in url:
 
         if "playlist" in url:
-            results = sp.playlist_tracks(url, limit=100)
-            items = get_all_items(results)
+            # FIX: removed the duplicate inner fetch block that used wrong keys
+            # ("track" vs "tracks"). Now we use only the correct offset-based
+            # pagination loop and process items right here.
+            items = []
+            offset = 0
+
+            while True:
+                results = sp.playlist_items(
+                    url,
+                    offset=offset,
+                    limit=100,
+                    additional_types="track"
+                )
+                current_items = results.get("items", [])
+                print(f"Получено: {len(current_items)}")
+                if not current_items:
+                    break
+                items.extend(current_items)
+                offset += 100
+
+            print(f"Всего items: {len(items)}")
 
             for item in items:
-                track = item["track"]
-                if track is None:
+                track = item.get("track")
+                if not track:
                     continue
-
+                artists = [artist.get("name", "Unknown") for artist in track.get("artists", [])]
                 tracks_data.append({
-                    "Название": track["name"],
-                    "Исполнитель": ", ".join(a["name"] for a in track["artists"]),
-                    "Альбом": track["album"]["name"],
-                    "Длительность (сек)": track["duration_ms"] // 1000
+                    "Название": track.get("name", "Unknown"),
+                    "Исполнитель": ", ".join(artists),
+                    "Альбом": track.get("album", {}).get("name", "Unknown"),
+                    "Длительность (сек)": track.get("duration_ms", 0) // 1000
                 })
+
+            print(f"Треков после фильтрации: {len(tracks_data)}")
 
         elif "album" in url:
             results = sp.album_tracks(url)
