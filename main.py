@@ -84,9 +84,22 @@ try:
 
             print(f"Всего items: {len(items)}")
 
+            # Диагностика структуры первого item
+            if items:
+                first = items[0]
+                print(f"[DEBUG] item keys: {list(first.keys()) if isinstance(first, dict) else type(first)}")
+                print(f"[DEBUG] item[track] type: {type(first.get('track'))}")
+                print(f"[DEBUG] item[track] value: {str(first.get('track'))[:200]}")
+
             for item in items:
-                track = item.get("track")
-                if not track:
+                if not isinstance(item, dict):
+                    print(f"[DEBUG] item is not dict: {type(item)}")
+                    continue
+                track = item.get("track") or item.get("episode") or item.get("item")
+                if not track or not isinstance(track, dict):
+                    continue
+                # Пропускаем треки без id (удалённые/локальные файлы)
+                if not track.get("id"):
                     continue
                 artists = [artist.get("name", "Unknown") for artist in track.get("artists", [])]
                 tracks_data.append({
