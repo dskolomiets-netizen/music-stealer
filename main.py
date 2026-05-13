@@ -62,9 +62,6 @@ try:
     elif "spotify" in url:
 
         if "playlist" in url:
-            # FIX: removed the duplicate inner fetch block that used wrong keys
-            # ("track" vs "tracks"). Now we use only the correct offset-based
-            # pagination loop and process items right here.
             items = []
             offset = 0
 
@@ -83,13 +80,6 @@ try:
                 offset += 100
 
             print(f"Всего items: {len(items)}")
-
-            # Диагностика структуры первого item
-            if items:
-                first = items[0]
-                print(f"[DEBUG] item keys: {list(first.keys()) if isinstance(first, dict) else type(first)}")
-                print(f"[DEBUG] item[track] type: {type(first.get('track'))}")
-                print(f"[DEBUG] item[track] value: {str(first.get('track'))[:200]}")
 
             for item in items:
                 if not isinstance(item, dict):
