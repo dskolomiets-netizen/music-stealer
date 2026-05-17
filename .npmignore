@@ -1,0 +1,7 @@
+test/
+coverage/
+.github/
+.eslintrc.json
+.eslintignore
+*.tgz
+node_modules/

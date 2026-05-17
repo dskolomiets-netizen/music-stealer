@@ -1,0 +1,22 @@
+# Node.js
+node_modules/
+npm-debug.log*
+*.tgz
+
+# Coverage
+coverage/
+.nyc_output/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+*.iml
+
+# Python (уже существующие)
+__pycache__/
+*.pyc
+dist/
+build/
