@@ -7,7 +7,7 @@ import re
 
 from yamu import get_yandex_playlist
 
-
+print(hello world)
 # === UI ===
 root = tk.Tk()
 root.withdraw()
