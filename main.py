@@ -7,7 +7,7 @@ import re
 
 from yamu import get_yandex_playlist
 
-print(hello world)
+
 # === UI ===
 root = tk.Tk()
 root.withdraw()
@@ -17,6 +17,7 @@ if not url:
     messagebox.showerror("Ошибка", "Ссылка не введена")
     exit()
 if not tablename:
+
     tablename = "table"
 tablename = re.sub(r'[\\/*?:"<>|]', "_", tablename)
 
