@@ -5,7 +5,6 @@ client_id = "815743b24e9147f9b7b84078252addd0"
 client_secret = "d648ee65934f4cc09bed86bfd3c5e88c"
 
 # sp создаётся только при первом вызове get_spotify_tracks,
-# а не при импорте модуля — иначе авторизация запрашивается сразу
 _sp = None
 
 def _get_sp():

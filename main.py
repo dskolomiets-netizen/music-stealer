@@ -15,13 +15,12 @@ def ask_string(title, prompt):
     dialog.title(title)
     dialog.resizable(False, False)
     dialog.grab_set()
-
     tk.Label(dialog, text=prompt, padx=20, pady=10).pack()
     entry = tk.Entry(dialog, width=50)
     entry.pack(padx=20, pady=(0, 10))
     entry.focus_set()
 
-    # Ctrl+V и Ctrl+м (русская раскладка) — оба работают
+    # Ctrl+V и Ctrl+м (русская раскладка) — работают
     def paste(e=None):
         try:
             entry.insert(tk.INSERT, dialog.clipboard_get())
@@ -54,7 +53,7 @@ def ask_string(title, prompt):
     return result[0]
 
 
-url = ask_string("Музыка", "Вставь ссылку:")
+url = ask_string("Музыка", "Вставьте ссылку:")
 tablename = ask_string("Музыка", "Название файла:")
 
 if not url:
